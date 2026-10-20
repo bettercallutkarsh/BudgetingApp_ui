@@ -1,0 +1,374 @@
+<app-page-header title="Entries" subtitle="Record spending, safety savings and investments" />
+
+<div class="entries-layout">
+  <section class="card p-6" aria-labelledby="create-entry-heading">
+    <h2 id="create-entry-heading" class="text-base font-semibold text-text-primary mb-4">
+      Record an entry
+    </h2>
+
+    @if (createdMessage()) {
+      <div class="alert alert-success mb-4" role="status">
+        <span>{{ createdMessage() }}</span>
+      </div>
+    }
+
+    @if (createError()) {
+      <div class="alert alert-danger mb-4" role="alert">
+        <span>{{ createError() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="form-stack">
+        <div>
+          <label class="label" for="entry-type">Entry type</label>
+          <select
+            id="entry-type"
+            class="select"
+            formControlName="entryType"
+          >
+            @for (type of entryTypes; track type) {
+              <option [value]="type">{{ entryTypeLabels[type] }}</option>
+            }
+          </select>
+        </div>
+
+        @if (bucketEditable()) {
+          <div>
+            <label class="label" for="entry-bucket">Budget bucket</label>
+            <select
+              id="entry-bucket"
+              class="select"
+              formControlName="bucket"
+            >
+              <option value="ESSENTIALS">{{ bucketLabels['ESSENTIALS'] }}</option>
+              <option value="SAFETY">{{ bucketLabels['SAFETY'] }}</option>
+            </select>
+            <p class="hint">Expenses can be funded from Essentials or Safety.</p>
+          </div>
+        } @else {
+          <div>
+            <span class="label">Budget bucket</span>
+            <p class="field-readonly">
+              {{ bucket() ? bucketLabels[bucket()!] : '—' }}
+            </p>
+            <p class="hint">
+              @if (entryType() === 'SAFETY_SAVING') {
+                Safety savings are always recorded against the Safety bucket.
+              } @else {
+                Investments are always recorded against the Investments bucket.
+              }
+            </p>
+          </div>
+        }
+
+        <div>
+          <label class="label" for="entry-category">Category</label>
+          <select
+            id="entry-category"
+            class="select"
+            formControlName="categoryCode"
+            [class.input-invalid]="isInvalid('categoryCode')"
+            [attr.aria-invalid]="isInvalid('categoryCode') ? 'true' : null"
+            [attr.aria-busy]="categoriesLoading()"
+            aria-describedby="entry-category-help"
+          >
+            <option value="" disabled>
+              @if (categoriesLoading()) { Loading categories… } @else { Select a category }
+            </option>
+            @for (category of categories(); track category.code) {
+              <option [value]="category.code">{{ category.label }}</option>
+            }
+          </select>
+          <p class="hint" id="entry-category-help">
+            @if (categoriesLoading()) {
+              Loading categories…
+            } @else if (categoriesError()) {
+              <span class="error-text">{{ categoriesError() }}</span>
+              <button type="button" class="link-button" (click)="loadCategories()">Try again</button>
+            } @else if (categoryEmpty()) {
+              No categories are available for this entry type.
+            }
+          </p>
+          @if (fieldError('categoryCode')) {
+            <p class="error-text" role="alert">{{ fieldError('categoryCode') }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="label" for="entry-amount">Amount (INR)</label>
+          <input
+            id="entry-amount"
+            type="text"
+            inputmode="decimal"
+            class="input tabular"
+            [class.input-invalid]="isInvalid('amount')"
+            formControlName="amount"
+            placeholder="0.00"
+            [attr.aria-invalid]="isInvalid('amount') ? 'true' : null"
+          />
+          @if (fieldError('amount')) {
+            <p class="error-text" role="alert">{{ fieldError('amount') }}</p>
+          }
+        </div>
+
+        @if (paymentRequired()) {
+          <div>
+            <label class="label" for="entry-payment">Payment method</label>
+            <select
+              id="entry-payment"
+              class="select"
+              formControlName="paymentMethod"
+              [class.input-invalid]="isInvalid('paymentMethod')"
+              [attr.aria-invalid]="isInvalid('paymentMethod') ? 'true' : null"
+            >
+              @for (method of paymentMethods; track method) {
+                <option [value]="method">{{ paymentMethodLabels[method] }}</option>
+              }
+            </select>
+            @if (fieldError('paymentMethod')) {
+              <p class="error-text" role="alert">{{ fieldError('paymentMethod') }}</p>
+            }
+          </div>
+        }
+
+        <div class="form-row">
+          <div>
+            <label class="label" for="entry-date">Date</label>
+            <input
+              id="entry-date"
+              type="date"
+              class="input"
+              [class.input-invalid]="isInvalid('entryDate')"
+              formControlName="entryDate"
+              [attr.aria-invalid]="isInvalid('entryDate') ? 'true' : null"
+            />
+            @if (fieldError('entryDate')) {
+              <p class="error-text" role="alert">{{ fieldError('entryDate') }}</p>
+            }
+          </div>
+          <div>
+            <label class="label" for="entry-time">Time</label>
+            <input
+              id="entry-time"
+              type="time"
+              class="input"
+              [class.input-invalid]="isInvalid('entryTime')"
+              formControlName="entryTime"
+              [attr.aria-invalid]="isInvalid('entryTime') ? 'true' : null"
+            />
+            @if (fieldError('entryTime')) {
+              <p class="error-text" role="alert">{{ fieldError('entryTime') }}</p>
+            }
+          </div>
+        </div>
+        <p class="hint">Times are recorded in Asia/Kolkata (IST).</p>
+
+        <div>
+          <label class="label" for="entry-note">Note <span class="text-text-muted">(optional)</span></label>
+          <textarea
+            id="entry-note"
+            class="input textarea"
+            [class.input-invalid]="isInvalid('note')"
+            formControlName="note"
+            rows="2"
+            maxlength="500"
+            placeholder="What was this for?"
+          ></textarea>
+          @if (fieldError('note')) {
+            <p class="error-text" role="alert">{{ fieldError('note') }}</p>
+          }
+        </div>
+
+        <button
+          type="submit"
+          class="btn btn-primary btn-block"
+          [disabled]="submitting()"
+          [attr.aria-busy]="submitting()"
+        >
+          @if (submitting()) {
+            <span class="spinner" aria-hidden="true"></span>
+            Recording…
+          } @else {
+            Record entry
+          }
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card p-6" aria-labelledby="history-heading">
+    <h2 id="history-heading" class="text-base font-semibold text-text-primary mb-4">
+      Transaction history
+    </h2>
+
+    <div class="filters">
+      <div>
+        <label class="label" for="filter-type">Entry type</label>
+        <select
+          id="filter-type"
+          class="select"
+          [value]="filterEntryType()"
+          (change)="setFilterEntryType($any($event.target).value)"
+        >
+          <option value="">All types</option>
+          @for (type of entryTypes; track type) {
+            <option [value]="type">{{ entryTypeLabels[type] }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label class="label" for="filter-status">Status</label>
+        <select
+          id="filter-status"
+          class="select"
+          [value]="filterStatus()"
+          (change)="setFilterStatus($any($event.target).value)"
+        >
+          <option value="">All statuses</option>
+          <option value="POSTED">{{ entryStatusLabels['POSTED'] }}</option>
+          <option value="VOID">{{ entryStatusLabels['VOID'] }}</option>
+        </select>
+      </div>
+      <div class="filters__actions">
+        <button type="button" class="btn btn-secondary" (click)="applyFilters()">Apply</button>
+        <button type="button" class="btn btn-ghost" (click)="clearFilters()">Clear</button>
+      </div>
+    </div>
+
+    @if (historyLoading()) {
+      <div aria-busy="true" aria-live="polite">
+        @for (row of [1, 2, 3]; track row) {
+          <div class="skeleton skeleton-line" style="height: 1rem; margin-bottom: 0.75rem"></div>
+        }
+      </div>
+    } @else if (historyError()) {
+      <div class="history-state" role="alert">
+        <p class="text-sm text-text-secondary mb-3">{{ historyError() }}</p>
+        <button type="button" class="btn btn-primary" (click)="loadHistory()">Try again</button>
+      </div>
+    } @else if (historyEmpty()) {
+      <p class="text-sm text-text-muted">No entries match your filters yet.</p>
+    } @else {
+      <ul class="entry-rows">
+        @for (entry of entries(); track entry.moneyEntryId) {
+          <li class="entry-row" [class.entry-row--void]="entry.status === 'VOID'">
+            <div class="entry-row__main">
+              <div class="entry-row__title">
+                <span class="entry-row__category">{{ categoryLabel(entry.categoryCode) }}</span>
+                <span class="pill pill-neutral">{{ entryTypeLabels[entry.entryType] }}</span>
+                @if (entry.bucket) {
+                  <span class="pill pill-info">{{ bucketLabels[entry.bucket] }}</span>
+                }
+                @if (entry.status === 'VOID') {
+                  <span class="pill pill-danger">Void</span>
+                }
+              </div>
+              <div class="entry-row__meta text-xs text-text-muted">
+                {{ formatDateTime(entry.entryAtUtc) }}
+                @if (entry.paymentMethod) {
+                  &middot; {{ paymentMethodLabels[entry.paymentMethod!] }}
+                }
+                @if (entry.note) {
+                  &middot; {{ entry.note }}
+                }
+              </div>
+            </div>
+            <div class="entry-row__side">
+              <span class="tabular entry-row__amount">{{ formatInr(entry.amount) }}</span>
+              @if (entry.status === 'POSTED') {
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  (click)="requestVoid(entry)"
+                  [attr.aria-label]="'Void entry ' + categoryLabel(entry.categoryCode)"
+                >
+                  Void
+                </button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+
+      <div class="pagination" role="navigation" aria-label="History pagination">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="goToPage(-1)"
+          [disabled]="!hasPrevious()"
+        >
+          Previous
+        </button>
+        <span class="pagination__label text-sm text-text-secondary">
+          Page {{ page() + 1 }} of {{ totalPages() === 0 ? 1 : totalPages() }} &middot; {{ totalElements() }} entries
+        </span>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="goToPage(1)"
+          [disabled]="!hasNext()"
+        >
+          Next
+        </button>
+      </div>
+    }
+  </section>
+</div>
+
+@if (voidTarget(); as target) {
+  <div class="modal-backdrop" (click)="cancelVoid()">
+    <div
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="void-title"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="void-title" class="modal__title">Void this entry?</h2>
+      <p class="modal__body">
+        Voiding marks this {{ formatInr(target.amount) }} {{ entryTypeLabels[target.entryType] }} entry
+        as <strong>void</strong>. The record is kept for your history and is not deleted.
+      </p>
+
+      @if (voidError()) {
+        <div class="alert alert-danger mb-4" role="alert">
+          <span>{{ voidError() }}</span>
+        </div>
+      }
+
+      <div>
+        <label class="label" for="void-reason">Reason <span class="text-text-muted">(optional)</span></label>
+        <input
+          id="void-reason"
+          type="text"
+          class="input"
+          maxlength="250"
+          [value]="voidReason()"
+          (input)="setVoidReason($any($event.target).value)"
+          placeholder="Why is this being voided?"
+        />
+      </div>
+
+      <div class="modal__actions">
+        <button type="button" class="btn btn-ghost" (click)="cancelVoid()" [disabled]="voidSubmitting()">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-destructive"
+          (click)="confirmVoid()"
+          [disabled]="voidSubmitting()"
+          [attr.aria-busy]="voidSubmitting()"
+        >
+          @if (voidSubmitting()) {
+            <span class="spinner" aria-hidden="true"></span>
+            Voiding…
+          } @else {
+            Void entry
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

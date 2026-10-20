@@ -1,0 +1,235 @@
+<app-page-header
+  title="Reports"
+  subtitle="Monthly status and date-range breakdowns (Asia/Kolkata, Indian financial-year groupings)"
+/>
+
+<section class="card p-6 mb-5" aria-labelledby="monthly-heading">
+  <div class="section-head">
+    <h2 id="monthly-heading" class="text-base font-semibold text-text-primary">Monthly summary</h2>
+    <div class="month-nav">
+      <button
+        type="button"
+        class="btn btn-ghost btn-icon"
+        (click)="prevMonth()"
+        aria-label="Previous month"
+      >
+        <span aria-hidden="true">&#8249;</span>
+      </button>
+      <span class="month-nav__label tabular">{{ monthLabel() }}</span>
+      <button
+        type="button"
+        class="btn btn-ghost btn-icon"
+        (click)="nextMonth()"
+        [disabled]="!canGoNext()"
+        aria-label="Next month"
+      >
+        <span aria-hidden="true">&#8250;</span>
+      </button>
+    </div>
+  </div>
+
+  @if (monthlyLoading()) {
+    <div aria-busy="true" aria-live="polite">
+      <div class="skeleton skeleton-line" style="height: 5rem"></div>
+    </div>
+  } @else if (monthlyError()) {
+    <div role="alert">
+      <p class="text-sm text-text-secondary mb-3">{{ monthlyError() }}</p>
+      <button type="button" class="btn btn-primary" (click)="retryMonthly()">Try again</button>
+    </div>
+  } @else if (monthlySummary(); as m) {
+    <div class="monthly-grid">
+      <div>
+        <div class="text-sm text-text-secondary mb-1">Recorded income</div>
+        <div class="text-xl font-semibold tabular text-text-primary">
+          {{ m.incomeAmount ? formatInr(m.incomeAmount) : 'Not set' }}
+        </div>
+      </div>
+      <div>
+        <div class="text-sm text-text-secondary mb-1">Consumption expenditure</div>
+        <div class="text-xl font-semibold tabular text-text-primary">
+          {{ formatInr(m.consumptionExpenditure) }}
+        </div>
+      </div>
+      <div>
+        <div class="text-sm text-text-secondary mb-1">Safety savings</div>
+        <div class="text-xl font-semibold tabular text-text-primary">
+          {{ formatInr(m.safetySavings) }}
+        </div>
+      </div>
+      <div>
+        <div class="text-sm text-text-secondary mb-1">Investment contributions</div>
+        <div class="text-xl font-semibold tabular text-text-primary">
+          {{ formatInr(m.investmentContributions) }}
+        </div>
+      </div>
+      <div>
+        <div class="text-sm text-text-secondary mb-1">Credit-card outstanding (estimated)</div>
+        <div class="text-xl font-semibold tabular text-text-primary">
+          {{ formatInr(m.creditCardOutstandingAmount) }}
+        </div>
+      </div>
+    </div>
+    @if (m.explanation) {
+      <p class="hint mt-4">{{ m.explanation }}</p>
+    }
+  }
+</section>
+
+<section class="card p-6" aria-labelledby="range-heading">
+  <h2 id="range-heading" class="text-base font-semibold text-text-primary mb-1">Date-range summary</h2>
+  <p class="text-sm text-text-secondary mb-4">
+    Pick a start and end date and how to group the results. Income is recorded per month, so only
+    full months inside the range include income.
+  </p>
+
+  <div class="range-controls">
+    <div>
+      <label class="label" for="range-from">From</label>
+      <input
+        id="range-from"
+        type="date"
+        class="input"
+        [ngModel]="fromDate()"
+        (ngModelChange)="setFromDate($event)"
+      />
+    </div>
+    <div>
+      <label class="label" for="range-to">To</label>
+      <input
+        id="range-to"
+        type="date"
+        class="input"
+        [ngModel]="toDate()"
+        (ngModelChange)="setToDate($event)"
+      />
+    </div>
+    <div>
+      <label class="label" for="range-group">Group by</label>
+      <select
+        id="range-group"
+        class="select"
+        [ngModel]="groupBy()"
+        (ngModelChange)="setGroupBy($event)"
+      >
+        @for (option of groupOptions; track option) {
+          <option [value]="option">{{ groupByLabels[option] }}</option>
+        }
+      </select>
+    </div>
+    <div class="range-controls__actions">
+      <button type="button" class="btn btn-primary" (click)="loadRange()" [disabled]="rangeLoading()">
+        @if (rangeLoading()) {
+          <span class="spinner" aria-hidden="true"></span>
+          Applying…
+        } @else {
+          Apply
+        }
+      </button>
+    </div>
+  </div>
+
+  @if (rangeValidation()) {
+    <div class="alert alert-warning mt-4" role="alert">
+      <span>{{ rangeValidation() }}</span>
+    </div>
+  }
+
+  @if (rangeError()) {
+    <div class="alert alert-danger mt-4" role="alert">
+      <span>{{ rangeError() }}</span>
+      <button type="button" class="link-button" (click)="retryRange()">Try again</button>
+    </div>
+  }
+
+  @if (rangeLoading()) {
+    <div class="mt-5" aria-busy="true" aria-live="polite">
+      <div class="skeleton skeleton-line" style="height: 1rem; width: 60%; margin-bottom: 0.75rem"></div>
+      <div class="skeleton skeleton-line" style="height: 1rem; width: 80%"></div>
+    </div>
+  } @else if (rangeSummary(); as rs) {
+    @if (!incomeIncluded()) {
+      <div class="alert alert-info mt-4" role="status">
+        <span>{{ rs.explanation || 'Income is recorded monthly; choose a full-month period to include it.' }}</span>
+      </div>
+    }
+
+    @if (rs.totals; as totals) {
+      <div class="totals-grid mt-5">
+        <div>
+          <div class="text-sm text-text-secondary mb-1">Total consumption</div>
+          <div class="text-lg font-semibold tabular text-text-primary">
+            {{ formatInr(totals.consumptionExpenditure) }}
+          </div>
+        </div>
+        <div>
+          <div class="text-sm text-text-secondary mb-1">Total safety savings</div>
+          <div class="text-lg font-semibold tabular text-text-primary">
+            {{ formatInr(totals.safetySavings) }}
+          </div>
+        </div>
+        <div>
+          <div class="text-sm text-text-secondary mb-1">Total investment contributions</div>
+          <div class="text-lg font-semibold tabular text-text-primary">
+            {{ formatInr(totals.investmentContributions) }}
+          </div>
+        </div>
+        <div>
+          <div class="text-sm text-text-secondary mb-1">Total recorded income</div>
+          <div class="text-lg font-semibold tabular text-text-primary">
+            {{ incomeIncluded() ? formatInr(totals.recordedIncome) : 'Not included' }}
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (hasPeriods()) {
+      <div class="chart mt-6" role="img" [attr.aria-label]="'Bar chart of period totals from ' + rs.fromDate + ' to ' + rs.toDate">
+        <div class="chart__bars">
+          @for (bar of chartBars(); track bar.label) {
+            <div class="chart__column" [title]="bar.tooltip">
+              <div class="chart__bar-track">
+                <div class="chart__bar" [style.height.%]="bar.heightPercent"></div>
+              </div>
+              <span class="chart__label tabular">{{ bar.label }}</span>
+            </div>
+          }
+        </div>
+        <p class="hint">Bars show total consumption, safety and investments per period.</p>
+      </div>
+
+      <div class="table-scroll mt-6">
+        <table class="data-table">
+          <caption class="sr-only">
+            Period breakdown from {{ rs.fromDate }} to {{ rs.toDate }} grouped by
+            {{ groupByLabel(rs.groupBy) }}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Period</th>
+              <th scope="col" class="num">Consumption</th>
+              <th scope="col" class="num">Safety</th>
+              <th scope="col" class="num">Investments</th>
+              <th scope="col" class="num">Recorded income</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (period of periods(); track period.period) {
+              <tr>
+                <th scope="row">{{ period.period }}</th>
+                <td class="num tabular">{{ formatInr(period.consumptionExpenditure) }}</td>
+                <td class="num tabular">{{ formatInr(period.safetySavings) }}</td>
+                <td class="num tabular">{{ formatInr(period.investmentContributions) }}</td>
+                <td class="num tabular" [class.text-text-muted]="period.incomeIncluded !== true">
+                  {{ incomeCell(period) }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p class="text-sm text-text-muted mt-5">No entries in this period.</p>
+    }
+  }
+</section>

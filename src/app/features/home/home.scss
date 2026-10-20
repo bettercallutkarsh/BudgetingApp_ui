@@ -1,0 +1,108 @@
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.month-nav__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 9rem;
+  text-align: center;
+}
+
+.btn-icon {
+  height: var(--control-h-md);
+  width: var(--control-h-md);
+  padding: 0;
+  font-size: 1.1rem;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .dash-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dash-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.dash-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.progress-fill--over {
+  background: var(--state-danger) !important;
+}
+
+.over-flag {
+  color: var(--state-danger);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.entry-list {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.entry-list__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.entry-list__label {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-list__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.entry-list__amount {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--state-success);
+}
+
+.entry-list__amount--expense {
+  color: var(--text-primary);
+}
+
+.skeleton-line {
+  display: block;
+  width: 100%;
+}

@@ -1,0 +1,281 @@
+<app-page-header title="Budget" subtitle="Set your monthly income and bucket allocations">
+  <div class="month-nav">
+    <button
+      type="button"
+      class="btn btn-ghost btn-icon"
+      (click)="changeMonth(-1)"
+      aria-label="Previous month"
+    >
+      <span aria-hidden="true">&#8249;</span>
+    </button>
+    <span class="month-nav__label tabular">{{ monthLabel() }}</span>
+    <button
+      type="button"
+      class="btn btn-ghost btn-icon"
+      (click)="changeMonth(1)"
+      aria-label="Next month"
+    >
+      <span aria-hidden="true">&#8250;</span>
+    </button>
+  </div>
+</app-page-header>
+
+@if (loading()) {
+  <div class="card p-6" aria-busy="true" aria-live="polite">
+    <div class="skeleton skeleton-line" style="height: 1.25rem; width: 30%; margin-bottom: 1rem"></div>
+    <div class="skeleton skeleton-line" style="height: 2.5rem; margin-bottom: 1rem"></div>
+    <div class="skeleton skeleton-line" style="height: 2.5rem; width: 60%"></div>
+  </div>
+} @else if (loadError()) {
+  <div class="card p-6" role="alert">
+    <h2 class="text-base font-semibold text-text-primary mb-1">We couldn't load this budget</h2>
+    <p class="text-sm text-text-secondary mb-4">{{ loadError() }}</p>
+    <button type="button" class="btn btn-primary" (click)="retry()">Try again</button>
+  </div>
+} @else {
+  @if (isPast()) {
+    <div class="alert alert-info mb-5" role="status">
+      <span>This month is in the past, so the budget is read-only and cannot be changed.</span>
+    </div>
+  }
+
+  @if (saved()) {
+    <div class="alert alert-success mb-5" role="status">
+      <span>Budget saved for {{ monthLabel() }}.</span>
+    </div>
+  }
+
+  @if (conflictMessage()) {
+    <div class="alert alert-danger mb-5" role="alert">
+      <span>{{ conflictMessage() }}</span>
+    </div>
+  }
+
+  @if (formError()) {
+    <div class="alert alert-danger mb-5" role="alert">
+      <span>{{ formError() }}</span>
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="card p-6">
+      <h2 class="text-base font-semibold text-text-primary mb-4">Monthly income</h2>
+
+      <div class="form-grid">
+        <div>
+          <label class="label" for="budget-income-type">Income type</label>
+          <select
+            id="budget-income-type"
+            class="select"
+            formControlName="incomeType"
+            [attr.aria-invalid]="isInvalid('incomeType') ? 'true' : null"
+          >
+            @for (type of incomeTypes; track type) {
+              <option [value]="type">{{ incomeTypeLabels[type] }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label class="label" for="budget-income-source">Source label <span class="text-text-muted">(optional)</span></label>
+          <input
+            id="budget-income-source"
+            type="text"
+            class="input"
+            [class.input-invalid]="isInvalid('incomeSourceLabel')"
+            formControlName="incomeSourceLabel"
+            maxlength="120"
+            placeholder="e.g. Primary salary"
+          />
+          @if (fieldError('incomeSourceLabel')) {
+            <p class="error-text" role="alert">{{ fieldError('incomeSourceLabel') }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="label" for="budget-income-amount">Monthly income amount</label>
+          <input
+            id="budget-income-amount"
+            type="text"
+            inputmode="decimal"
+            class="input tabular"
+            [class.input-invalid]="isInvalid('incomeAmount')"
+            formControlName="incomeAmount"
+            placeholder="0.00"
+          />
+          @if (fieldError('incomeAmount')) {
+            <p class="error-text" role="alert">{{ fieldError('incomeAmount') }}</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-6 mt-5">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <h2 class="text-base font-semibold text-text-primary">Allocation</h2>
+        <div class="toggle-field">
+          <span class="text-sm text-text-secondary">Investments</span>
+          <button
+            type="button"
+            class="toggle"
+            [class.toggle--on]="investmentsEnabled()"
+            (click)="toggleInvestments()"
+            [disabled]="isPast() || submitting()"
+            role="switch"
+            [attr.aria-checked]="investmentsEnabled()"
+            [attr.aria-label]="'Investments ' + toggleLabel()"
+          >
+            <span class="toggle__thumb"></span>
+          </button>
+          <span class="text-sm font-medium text-text-primary">{{ toggleLabel() }}</span>
+        </div>
+      </div>
+
+      <span class="label" id="preset-label">Preset</span>
+      <div class="preset-cards" role="group" aria-labelledby="preset-label">
+        <button
+          type="button"
+          class="preset-card"
+          [class.preset-card--active]="presetMode() === 'CONSERVATIVE'"
+          [attr.aria-pressed]="presetMode() === 'CONSERVATIVE'"
+          (click)="selectPreset(presets[0])"
+          [disabled]="isPast() || submitting()"
+        >
+          <div class="preset-card__head">
+            <div class="font-semibold text-sm text-text-primary">Conservative</div>
+            @if (presetMode() === 'CONSERVATIVE') {
+              <span class="preset-card__badge">Selected</span>
+            }
+          </div>
+          <div class="text-xs text-text-secondary mt-1">Essentials 60% · Safety 10% · Investments 30%</div>
+        </button>
+        <button
+          type="button"
+          class="preset-card"
+          [class.preset-card--active]="presetMode() === 'BALANCED'"
+          [attr.aria-pressed]="presetMode() === 'BALANCED'"
+          (click)="selectPreset(presets[1])"
+          [disabled]="isPast() || submitting()"
+        >
+          <div class="preset-card__head">
+            <div class="font-semibold text-sm text-text-primary">Balanced</div>
+            @if (presetMode() === 'BALANCED') {
+              <span class="preset-card__badge">Selected</span>
+            }
+          </div>
+          <div class="text-xs text-text-secondary mt-1">Essentials 55% · Safety 10% · Investments 35%</div>
+        </button>
+        <button
+          type="button"
+          class="preset-card"
+          [class.preset-card--active]="presetMode() === 'AGGRESSIVE'"
+          [attr.aria-pressed]="presetMode() === 'AGGRESSIVE'"
+          (click)="selectPreset(presets[2])"
+          [disabled]="isPast() || submitting()"
+        >
+          <div class="preset-card__head">
+            <div class="font-semibold text-sm text-text-primary">Aggressive</div>
+            @if (presetMode() === 'AGGRESSIVE') {
+              <span class="preset-card__badge">Selected</span>
+            }
+          </div>
+          <div class="text-xs text-text-secondary mt-1">Essentials 50% · Safety 10% · Investments 40%</div>
+        </button>
+        <button
+          type="button"
+          class="preset-card"
+          [class.preset-card--active]="presetMode() === 'MANUAL'"
+          [attr.aria-pressed]="presetMode() === 'MANUAL'"
+          (click)="selectManual()"
+          [disabled]="isPast() || submitting()"
+        >
+          <div class="preset-card__head">
+            <div class="font-semibold text-sm text-text-primary">Manual</div>
+            @if (presetMode() === 'MANUAL') {
+              <span class="preset-card__badge">Selected</span>
+            }
+          </div>
+          <div class="text-xs text-text-secondary mt-1">Set each bucket yourself · must total 100%</div>
+        </button>
+      </div>
+
+      <div class="form-grid mt-5">
+        <div>
+          <label class="label" for="budget-essentials">Essentials %</label>
+          <input
+            id="budget-essentials"
+            type="text"
+            inputmode="decimal"
+            class="input tabular"
+            [class.input-invalid]="isInvalid('essentialsPercentage')"
+            formControlName="essentialsPercentage"
+          />
+          @if (fieldError('essentialsPercentage')) {
+            <p class="error-text" role="alert">{{ fieldError('essentialsPercentage') }}</p>
+          }
+          <p class="hint">≈ {{ formatInr(previewAmounts().essentials) }}</p>
+        </div>
+
+        <div>
+          <label class="label" for="budget-safety">Safety %</label>
+          <input
+            id="budget-safety"
+            type="text"
+            inputmode="decimal"
+            class="input tabular"
+            [class.input-invalid]="isInvalid('safetyPercentage')"
+            formControlName="safetyPercentage"
+          />
+          @if (fieldError('safetyPercentage')) {
+            <p class="error-text" role="alert">{{ fieldError('safetyPercentage') }}</p>
+          }
+          <p class="hint">≈ {{ formatInr(previewAmounts().safety) }}</p>
+        </div>
+
+        <div>
+          <label class="label" for="budget-investments">Investments %</label>
+          <input
+            id="budget-investments"
+            type="text"
+            inputmode="decimal"
+            class="input tabular"
+            [class.input-invalid]="isInvalid('investmentsPercentage')"
+            formControlName="investmentsPercentage"
+            [disabled]="!investmentsEnabled()"
+          />
+          @if (fieldError('investmentsPercentage')) {
+            <p class="error-text" role="alert">{{ fieldError('investmentsPercentage') }}</p>
+          }
+          @if (investmentsEnabled()) {
+            <p class="hint">≈ {{ formatInr(previewAmounts().investments) }}</p>
+          } @else {
+            <p class="hint">Investments are switched off for this month.</p>
+          }
+        </div>
+      </div>
+
+      <p class="hint mt-4" [class.hint--invalid]="!allocationValid()">
+        Total allocation: {{ allocationTotal() | number: '1.0-2' }}%
+        @if (!allocationValid()) {
+          <span> — must equal 100%.</span>
+        }
+      </p>
+    </div>
+
+    <div class="form-actions mt-5">
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="submitting() || isPast()"
+        [attr.aria-busy]="submitting()"
+      >
+        @if (submitting()) {
+          <span class="spinner" aria-hidden="true"></span>
+          Saving…
+        } @else {
+          Save budget
+        }
+      </button>
+    </div>
+  </form>
+}

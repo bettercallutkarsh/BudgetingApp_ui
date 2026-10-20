@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+
+.cc-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .cc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .cc-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.cc-stat {
+  min-width: 0;
+}
+
+.cc-stat--primary {
+  border-color: var(--brand);
+}
