@@ -125,7 +125,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
           <label class="label" for="demo-select">Select field</label>
           <select id="demo-select" class="select">
             <option>Essentials</option>
-            <option>Safety</option>
+            <option>Emergency Fund</option>
             <option>Investments</option>
           </select>
         </div>
@@ -173,7 +173,7 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
         <div class="bucket-card">
           <div class="flex items-center gap-2 mb-2">
             <span class="bucket-dot" style="background: var(--bucket-safety)"></span>
-            <span class="text-sm font-medium text-text-primary">Safety</span>
+            <span class="text-sm font-medium text-text-primary">Emergency Fund</span>
           </div>
           <div class="text-xl font-semibold tabular text-text-primary">₹5,000.00</div>
           <div class="text-xs text-text-secondary mt-1">10% of income</div>

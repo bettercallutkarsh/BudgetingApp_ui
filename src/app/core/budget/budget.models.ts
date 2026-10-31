@@ -4,7 +4,7 @@ export const BUDGET_BUCKETS: BudgetBucket[] = ['ESSENTIALS', 'SAFETY', 'INVESTME
 
 export const BUCKET_LABELS: Record<BudgetBucket, string> = {
   ESSENTIALS: 'Essentials',
-  SAFETY: 'Safety',
+  SAFETY: 'Emergency Fund',
   INVESTMENTS: 'Investments',
 };
 
@@ -14,7 +14,7 @@ export const ENTRY_TYPES: EntryType[] = ['EXPENSE', 'SAFETY_SAVING', 'INVESTMENT
 
 export const ENTRY_TYPE_LABELS: Record<EntryType, string> = {
   EXPENSE: 'Expense',
-  SAFETY_SAVING: 'Safety saving',
+  SAFETY_SAVING: 'Emergency Fund saving',
   INVESTMENT: 'Investment contribution',
   CREDIT_CARD_PAYMENT: 'Credit-card payment',
 };
@@ -61,6 +61,16 @@ export const ALLOCATION_MODE_LABELS: Record<AllocationMode, string> = {
   MANUAL: 'Manual',
 };
 
+/** Matches the backend `AllocationInputMode` enum exactly. */
+export type AllocationInputMode = 'PERCENTAGE' | 'AMOUNT';
+
+export const ALLOCATION_INPUT_MODES: AllocationInputMode[] = ['PERCENTAGE', 'AMOUNT'];
+
+export const ALLOCATION_INPUT_MODE_LABELS: Record<AllocationInputMode, string> = {
+  PERCENTAGE: 'Percentage',
+  AMOUNT: 'Amount',
+};
+
 export interface AllocationPreset {
   mode: AllocationMode;
   essentialsPercentage: string;
@@ -76,14 +86,15 @@ export const ALLOCATION_PRESETS: AllocationPreset[] = [
     safetyPercentage: '10.00',
     investmentsPercentage: '30.00',
     description:
-      'For people or families who want higher stability, lower market risk and a stronger safety allocation.',
+      'For people or families who want higher stability, lower market risk and a stronger emergency fund allocation.',
   },
   {
     mode: 'BALANCED',
     essentialsPercentage: '55.00',
     safetyPercentage: '10.00',
     investmentsPercentage: '35.00',
-    description: 'A practical mix of everyday expenses, safety and long-term investment contributions.',
+    description:
+      'A practical mix of everyday expenses, emergency fund and long-term investment contributions.',
   },
   {
     mode: 'AGGRESSIVE',
@@ -127,6 +138,7 @@ export interface MonthlyBudget {
   incomeSourceLabel: string | null;
   incomeAmount: string;
   allocationMode: AllocationMode;
+  allocationInputMode?: AllocationInputMode;
   investmentsEnabled: boolean;
   essentialsPercentage: string;
   safetyPercentage: string;
@@ -143,10 +155,14 @@ export interface MonthlyBudgetSaveRequest {
   incomeSourceLabel?: string | null;
   incomeAmount: string;
   allocationMode: AllocationMode;
+  allocationInputMode: AllocationInputMode;
   investmentsEnabled: boolean;
-  essentialsPercentage: string;
-  safetyPercentage: string;
-  investmentsPercentage: string;
+  essentialsPercentage?: string;
+  safetyPercentage?: string;
+  investmentsPercentage?: string;
+  essentialsAmount?: string;
+  safetyAmount?: string;
+  investmentsAmount?: string;
 }
 
 export interface MonthlySummary {
@@ -193,6 +209,8 @@ export interface MoneyEntry {
   note: string | null;
   status: EntryStatus;
   clientRequestId: string | null;
+  sipPlanId?: number | null;
+  sipInstallmentPeriod?: string | null;
   voidedAtUtc: string | null;
   voidReason: string | null;
   createdAtUtc: string;

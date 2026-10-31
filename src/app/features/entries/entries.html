@@ -1,4 +1,6 @@
-<app-page-header title="Entries" subtitle="Record spending, safety savings and investments" />
+<app-page-header title="Entries" subtitle="Record spending, emergency fund savings and investments">
+  <a class="btn btn-secondary" routerLink="/sip-plans">SIP plans</a>
+</app-page-header>
 
 <div class="entries-layout">
   <section class="card p-6" aria-labelledby="create-entry-heading">
@@ -44,7 +46,7 @@
               <option value="ESSENTIALS">{{ bucketLabels['ESSENTIALS'] }}</option>
               <option value="SAFETY">{{ bucketLabels['SAFETY'] }}</option>
             </select>
-            <p class="hint">Expenses can be funded from Essentials or Safety.</p>
+            <p class="hint">Expenses can be funded from Essentials or Emergency Fund.</p>
           </div>
         } @else {
           <div>
@@ -54,7 +56,7 @@
             </p>
             <p class="hint">
               @if (entryType() === 'SAFETY_SAVING') {
-                Safety savings are always recorded against the Safety bucket.
+                Emergency Fund savings are always recorded against the Emergency Fund bucket.
               } @else {
                 Investments are always recorded against the Investments bucket.
               }
@@ -260,6 +262,9 @@
                 @if (entry.bucket) {
                   <span class="pill pill-info">{{ bucketLabels[entry.bucket] }}</span>
                 }
+                @if (entry.sipPlanId) {
+                  <span class="pill pill-success">SIP plan</span>
+                }
                 @if (entry.status === 'VOID') {
                   <span class="pill pill-danger">Void</span>
                 }
@@ -268,6 +273,9 @@
                 {{ formatDateTime(entry.entryAtUtc) }}
                 @if (entry.paymentMethod) {
                   &middot; {{ paymentMethodLabels[entry.paymentMethod!] }}
+                }
+                @if (entry.sipInstallmentPeriod) {
+                  &middot; SIP installment {{ formatMonthLabel(entry.sipInstallmentPeriod) }}
                 }
                 @if (entry.note) {
                   &middot; {{ entry.note }}
@@ -330,6 +338,12 @@
         Voiding marks this {{ formatInr(target.amount) }} {{ entryTypeLabels[target.entryType] }} entry
         as <strong>void</strong>. The record is kept for your history and is not deleted.
       </p>
+      @if (target.sipPlanId) {
+        <p class="modal__body">
+          This entry is a SIP installment payment. Voiding it marks the installment unpaid, so
+          you can record the payment again later.
+        </p>
+      }
 
       @if (voidError()) {
         <div class="alert alert-danger mb-4" role="alert">

@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header';
+import { MonthSelectorComponent } from '../../shared/components/month-selector/month-selector';
 import { ReportsService } from '../../core/reports/reports.service';
 import { SummaryService } from '../../core/budget/summary.service';
 import { AuthApiError, serverErrorMessage } from '../../core/auth/auth.models';
@@ -33,7 +34,7 @@ interface ChartBar {
 
 @Component({
   selector: 'app-reports',
-  imports: [PageHeaderComponent, FormsModule],
+  imports: [PageHeaderComponent, MonthSelectorComponent, FormsModule],
   templateUrl: './reports.html',
   styleUrl: './reports.scss',
 })
@@ -88,7 +89,7 @@ export class ReportsPageComponent {
         total,
         heightPercent: max > 0 ? Math.round((total / max) * 100) : 0,
         tooltip: `${p.period}: ${formatInr(p.consumptionExpenditure)} consumption, ` +
-          `${formatInr(p.safetySavings)} safety, ${formatInr(p.investmentContributions)} investments`,
+          `${formatInr(p.safetySavings)} emergency fund, ${formatInr(p.investmentContributions)} investments`,
       };
     });
   });
@@ -107,6 +108,14 @@ export class ReportsPageComponent {
   }
 
   // --- Monthly actions ---
+  protected changeMonth(delta: number): void {
+    if (delta > 0) {
+      this.nextMonth();
+    } else {
+      this.prevMonth();
+    }
+  }
+
   protected prevMonth(): void {
     this.month.set(shiftMonth(this.month(), -1));
     void this.loadMonthly();

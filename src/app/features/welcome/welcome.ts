@@ -21,7 +21,7 @@ interface FeatureCard {
         <p class="welcome__eyebrow">Monthly Budgeting Money Planner</p>
         <h1 class="welcome__title" id="welcome-title">Plan your month. Keep your money on track.</h1>
         <p class="welcome__lede">
-          Set a monthly budget, split it across essentials, safety and investments,
+          Set a monthly budget, split it across essentials, emergency fund and investments,
           and follow every entry from one clean, calm place.
         </p>
         <div class="welcome__actions">
@@ -172,7 +172,7 @@ export class WelcomePageComponent {
       icon: 'wallet',
       title: 'Monthly budget',
       description:
-        'Set your income and choose how it splits across Essentials, Safety and Investments.',
+        'Set your income and choose how it splits across Essentials, Emergency Fund and Investments.',
     },
     {
       icon: 'receipt',

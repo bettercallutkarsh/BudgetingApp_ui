@@ -15,6 +15,33 @@ const CREATE_CATEGORY = {
   allowedBuckets: ['ESSENTIALS'],
 };
 
+const SIP_ENTRY: MoneyEntry = {
+  moneyEntryId: 2,
+  entryAtUtc: '2026-10-05T04:30:00Z',
+  entryType: 'INVESTMENT',
+  bucket: 'INVESTMENTS',
+  categoryCode: 'SIP',
+  amount: '5000.00',
+  paymentMethod: null,
+  note: 'Auto-debit',
+  status: 'POSTED',
+  clientRequestId: null,
+  sipPlanId: 7,
+  sipInstallmentPeriod: '2026-10-01',
+  voidedAtUtc: null,
+  voidReason: null,
+  createdAtUtc: '2026-10-05T04:30:00Z',
+  updatedAtUtc: '2026-10-05T04:30:00Z',
+};
+
+const GOLD_SIP_ENTRY: MoneyEntry = {
+  ...SIP_ENTRY,
+  moneyEntryId: 3,
+  categoryCode: 'GOLD_SIP',
+  sipPlanId: null,
+  sipInstallmentPeriod: null,
+};
+
 const ENTRY: MoneyEntry = {
   moneyEntryId: 1,
   entryAtUtc: '2026-10-05T04:30:00Z',
@@ -312,6 +339,81 @@ describe('EntriesPageComponent', () => {
     expect(text).toContain('Groceries');
     expect(text).toContain('1,200.00');
     expect(fixture.nativeElement.querySelector('button[aria-label^="Void entry"]')).toBeTruthy();
+  });
+
+  it('renders SIP-managed entries with their installment and a reversible void action', async () => {
+    const fixture = TestBed.createComponent(EntriesPageComponent);
+    fixture.detectChanges();
+    await settle();
+    await flushInitialLoad({ page: page([SIP_ENTRY]) });
+    fixture.detectChanges();
+
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('SIP plan');
+    expect(text).toContain('SIP installment October 2026');
+    expect(fixture.nativeElement.querySelector('a[href="/sip-plans"]')).toBeTruthy();
+
+    const voidButton = fixture.nativeElement.querySelector(
+      'button[aria-label^="Void entry"]',
+    ) as HTMLButtonElement;
+    expect(voidButton).toBeTruthy();
+    voidButton.click();
+    await settle();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain(
+      'Voiding it marks the installment unpaid',
+    );
+  });
+
+  it('keeps a readable label for legacy Gold SIP entries', async () => {
+    const fixture = TestBed.createComponent(EntriesPageComponent);
+    fixture.detectChanges();
+    await settle();
+    await flushInitialLoad({ page: page([GOLD_SIP_ENTRY]) });
+    fixture.detectChanges();
+
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('Gold SIP (legacy)');
+    expect(
+      fixture.nativeElement.querySelector('button[aria-label^="Void entry"]'),
+    ).toBeTruthy();
+  });
+
+  it('offers only the eight supported investment categories', async () => {
+    const fixture = TestBed.createComponent(EntriesPageComponent);
+    fixture.detectChanges();
+    await settle();
+    await flushInitialLoad();
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as any;
+    component.form.get('entryType').setValue('INVESTMENT');
+    await settle();
+    httpMock
+      .expectOne(
+        (r) =>
+          r.url === '/api/v1/reference-data/categories' &&
+          r.params.get('entryType') === 'INVESTMENT',
+      )
+      .flush([
+        {
+          code: 'GOLD_SIP',
+          label: 'Gold SIP',
+          allowedEntryTypes: ['INVESTMENT'],
+          allowedBuckets: ['INVESTMENTS'],
+        },
+        {
+          code: 'SIP',
+          label: 'SIP',
+          allowedEntryTypes: ['INVESTMENT'],
+          allowedBuckets: ['INVESTMENTS'],
+        },
+      ]);
+    await settle();
+
+    expect(component.categories().map((category: { code: string }) => category.code)).toEqual([
+      'SIP',
+    ]);
   });
 
   it('opens a void confirmation and refuses a second running void', async () => {

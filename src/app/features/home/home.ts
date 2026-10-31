@@ -1,9 +1,12 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header';
+import { MonthSelectorComponent } from '../../shared/components/month-selector/month-selector';
 import { BudgetService } from '../../core/budget/budget.service';
 import { SummaryService } from '../../core/budget/summary.service';
 import { EntriesService } from '../../core/entries/entries.service';
+import { SipService } from '../../core/sip/sip.service';
+import { SipCommitmentSummary } from '../../core/sip/sip.models';
 import {
   MonthlyBudget,
   MonthlySummary,
@@ -32,7 +35,7 @@ interface RecentEntry {
 
 @Component({
   selector: 'app-home',
-  imports: [PageHeaderComponent, RouterLink],
+  imports: [PageHeaderComponent, MonthSelectorComponent, RouterLink],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })
@@ -40,6 +43,7 @@ export class HomePageComponent {
   private readonly budgetService = inject(BudgetService);
   private readonly summaryService = inject(SummaryService);
   private readonly entriesService = inject(EntriesService);
+  private readonly sipService = inject(SipService);
   private readonly route = inject(ActivatedRoute);
 
   protected readonly month = signal(currentMonthKey());
@@ -50,6 +54,7 @@ export class HomePageComponent {
   protected readonly entries = signal<RecentEntry[]>([]);
   protected readonly entriesLoading = signal(true);
   protected readonly entriesFailed = signal(false);
+  protected readonly sipSummary = signal<SipCommitmentSummary | null>(null);
 
   protected readonly formatInr = formatInr;
   protected readonly monthLabel = computed(() => formatMonthLabel(this.month()));
@@ -68,6 +73,10 @@ export class HomePageComponent {
 
   protected readonly investmentsEnabled = computed(
     () => this.summary()?.investmentsEnabled ?? this.budget()?.investmentsEnabled ?? false,
+  );
+
+  protected readonly sipWarning = computed(
+    () => this.sipSummary()?.withinAllocation === false,
   );
 
   protected readonly essentials = computed(() =>
@@ -174,16 +183,21 @@ export class HomePageComponent {
         this.entriesFailed.set(true);
         return null;
       });
+    const sipPromise = this.sipService
+      .getCommitmentSummary(month)
+      .catch(() => null);
 
     try {
-      const [summary, budget, entries] = await Promise.all([
+      const [summary, budget, entries, sip] = await Promise.all([
         summaryPromise,
         budgetPromise,
         entriesPromise,
+        sipPromise,
       ]);
       this.summary.set(summary);
       this.budget.set(budget);
       this.entries.set(entries ? entries.content.map(toRecentEntry) : []);
+      this.sipSummary.set(sip);
     } finally {
       this.loading.set(false);
       this.entriesLoading.set(false);
