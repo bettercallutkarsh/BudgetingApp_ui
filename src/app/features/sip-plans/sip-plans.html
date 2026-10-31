@@ -1,0 +1,495 @@
+<app-page-header
+  title="SIP Plans"
+  subtitle="Track monthly investments, upcoming installments and this month's commitment."
+>
+  <a class="btn btn-secondary" routerLink="/entries">Back to entries</a>
+  <button type="button" class="btn btn-primary" (click)="openCreateForm()">New SIP plan</button>
+</app-page-header>
+
+@if (actionMessage()) {
+  <div class="alert alert-success mb-5" role="status">
+    <span>{{ actionMessage() }}</span>
+    <button type="button" class="alert__dismiss" aria-label="Dismiss message" (click)="actionMessage.set(null)">
+      Dismiss
+    </button>
+  </div>
+}
+
+@if (formMode(); as mode) {
+  <section class="card sip-form-card" aria-labelledby="sip-form-title">
+    <div class="sip-section-heading">
+      <div>
+        <h2 id="sip-form-title" class="sip-section-title">
+          {{ mode === 'create' ? 'New SIP plan' : 'Edit SIP plan' }}
+        </h2>
+        <p class="sip-section-subtitle">
+          The backend owns the installment schedule and records each paid installment as an
+          Investments / SIP entry.
+        </p>
+      </div>
+      <button type="button" class="btn btn-ghost" (click)="closeForm()" [disabled]="formSubmitting()">
+        Cancel
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submitForm()" novalidate>
+      <div class="sip-form-grid">
+        <div>
+          <label class="label" for="sip-plan-name">Plan name</label>
+          <input
+            id="sip-plan-name"
+            type="text"
+            class="input"
+            [class.input-invalid]="isInvalid('planName')"
+            formControlName="planName"
+            maxlength="120"
+            autocomplete="off"
+            placeholder="e.g. Index fund SIP"
+            [attr.aria-invalid]="isInvalid('planName') ? 'true' : null"
+          />
+          @if (fieldError('planName')) {
+            <p class="error-text" role="alert">{{ fieldError('planName') }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="label" for="sip-monthly-amount">Monthly amount</label>
+          <div class="money-field">
+            <!-- <span class="money-field__prefix" aria-hidden="true">₹</span> -->
+            <input
+              id="sip-monthly-amount"
+              type="text"
+              inputmode="decimal"
+              class="input tabular money-field__input"
+              [class.input-invalid]="isInvalid('monthlyAmount')"
+              formControlName="monthlyAmount"
+              autocomplete="off"
+              placeholder=" ₹ 0.00"
+              [attr.aria-invalid]="isInvalid('monthlyAmount') ? 'true' : null"
+            />
+          </div>
+          @if (fieldError('monthlyAmount')) {
+            <p class="error-text" role="alert">{{ fieldError('monthlyAmount') }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="label" for="sip-installment-day">Installment day</label>
+          <input
+            id="sip-installment-day"
+            type="number"
+            class="input tabular"
+            [class.input-invalid]="isInvalid('installmentDay')"
+            formControlName="installmentDay"
+            min="1"
+            max="31"
+            step="1"
+            [attr.aria-invalid]="isInvalid('installmentDay') ? 'true' : null"
+          />
+          <p class="sip-field-hint">1–31. For shorter months, the backend uses the month's last day.</p>
+          @if (fieldError('installmentDay')) {
+            <p class="error-text" role="alert">{{ fieldError('installmentDay') }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="label" for="sip-original-start">Original start date</label>
+          <input
+            id="sip-original-start"
+            type="date"
+            class="input tabular"
+            [class.input-invalid]="isInvalid('originalStartDate')"
+            formControlName="originalStartDate"
+            [attr.aria-invalid]="isInvalid('originalStartDate') ? 'true' : null"
+          />
+          <p class="sip-field-hint">The plan's first-ever installment date.</p>
+          @if (fieldError('originalStartDate')) {
+            <p class="error-text" role="alert">{{ fieldError('originalStartDate') }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="label" for="sip-tracking-start">Tracking start date</label>
+          <input
+            id="sip-tracking-start"
+            type="date"
+            class="input tabular"
+            [class.input-invalid]="isInvalid('trackingStartDate')"
+            formControlName="trackingStartDate"
+            [attr.aria-invalid]="isInvalid('trackingStartDate') ? 'true' : null"
+          />
+          <p class="sip-field-hint">Use a later date to begin tracking an existing plan mid-way.</p>
+          @if (fieldError('trackingStartDate')) {
+            <p class="error-text" role="alert">{{ fieldError('trackingStartDate') }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="label" for="sip-planned-end">Planned end date <span class="text-text-muted">(optional)</span></label>
+          <input
+            id="sip-planned-end"
+            type="date"
+            class="input tabular"
+            [class.input-invalid]="isInvalid('plannedEndDate')"
+            formControlName="plannedEndDate"
+            [attr.aria-invalid]="isInvalid('plannedEndDate') ? 'true' : null"
+          />
+          <p class="sip-field-hint">Leave blank for an open-ended SIP.</p>
+          @if (fieldError('plannedEndDate')) {
+            <p class="error-text" role="alert">{{ fieldError('plannedEndDate') }}</p>
+          }
+        </div>
+      </div>
+
+      @if (formError()) {
+        <p class="alert alert-danger mt-4" role="alert">{{ formError() }}</p>
+      }
+
+      <div class="sip-form-actions">
+        <button type="button" class="btn btn-secondary" (click)="closeForm()" [disabled]="formSubmitting()">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="formSubmitting()">
+          {{ formSubmitting() ? 'Saving…' : mode === 'create' ? 'Create plan' : 'Save changes' }}
+        </button>
+      </div>
+    </form>
+  </section>
+}
+
+<section class="card sip-summary-card mb-5" aria-labelledby="sip-summary-title">
+  <div class="sip-section-heading">
+    <div>
+      <h2 id="sip-summary-title" class="sip-section-title">This month at a glance</h2>
+      <p class="sip-section-subtitle">Compared with this month's Investments allocation.</p>
+    </div>
+    @if (summaryLoading()) {
+      <span class="sip-muted">Checking…</span>
+    }
+  </div>
+
+  @if (summaryError()) {
+    <div class="alert alert-danger" role="alert">
+      <span>{{ summaryError() }}</span>
+      <button type="button" class="btn btn-secondary btn-sm" (click)="retryAll()">Retry</button>
+    </div>
+  } @else if (summary(); as summary) {
+    <div class="sip-summary-grid">
+      <div class="sip-summary-item">
+        <span class="sip-summary-label">Active monthly commitment</span>
+        <strong class="sip-summary-value tabular">{{ formatInr(summary.activeMonthlyCommitment) }}</strong>
+      </div>
+      <div class="sip-summary-item">
+        <span class="sip-summary-label">Investments allocation</span>
+        <strong class="sip-summary-value tabular">
+          {{ summary.investmentsAmount !== null ? formatInr(summary.investmentsAmount) : '—' }}
+        </strong>
+      </div>
+      <div class="sip-summary-item">
+        <span class="sip-summary-label">Active plans</span>
+        <strong class="sip-summary-value tabular">{{ summary.activePlanCount }}</strong>
+      </div>
+    </div>
+
+    @if (summaryWarning()) {
+      <div class="alert alert-warning mt-4" role="status">
+        <span>
+          {{ summary.message }}
+          Over by <strong class="tabular">{{ formatInr(summary.overAllocationAmount) }}</strong>.
+          You can still continue, but the budget may not cover this month's SIPs.
+        </span>
+      </div>
+    } @else if (summary.investmentsAmount === null) {
+      <div class="alert alert-info mt-4" role="status">
+        <span>{{ summary.message }}</span>
+      </div>
+    } @else if (summary.message) {
+      <p class="sip-summary-note">{{ summary.message }}</p>
+    }
+  }
+</section>
+
+<div class="sip-layout">
+  <aside class="card sip-list-card" aria-labelledby="sip-plans-title">
+    <div class="sip-section-heading sip-section-heading--compact">
+      <div>
+        <h2 id="sip-plans-title" class="sip-section-title">Plans</h2>
+        <p class="sip-section-subtitle">
+          {{ plans().length }} {{ plans().length === 1 ? 'plan' : 'plans' }}
+        </p>
+      </div>
+    </div>
+
+    @if (plansLoading()) {
+      <div class="sip-loading" role="status" aria-live="polite">
+        <span class="skeleton-line"></span>
+        <span class="skeleton-line"></span>
+        <span class="skeleton-line"></span>
+        <span class="sr-only">Loading SIP plans</span>
+      </div>
+    } @else if (plansError()) {
+      <div class="alert alert-danger" role="alert">
+        <span>{{ plansError() }}</span>
+        <button type="button" class="btn btn-secondary btn-sm" (click)="retryAll()">Retry</button>
+      </div>
+    } @else if (plans().length === 0) {
+      <div class="sip-empty">
+        <p class="sip-empty-title">No SIP plans yet</p>
+        <p class="sip-empty-body">Create a plan to track installments and see how it fits your Investments allocation.</p>
+        <button type="button" class="btn btn-primary" (click)="openCreateForm()">Create your first plan</button>
+      </div>
+    } @else {
+      <div class="sip-plan-list">
+        @for (plan of plans(); track plan.sipPlanId) {
+          <button
+            type="button"
+            class="sip-plan-card"
+            [class.sip-plan-card--selected]="selectedPlanId() === plan.sipPlanId"
+            [attr.aria-current]="selectedPlanId() === plan.sipPlanId ? 'true' : null"
+            (click)="selectPlan(plan.sipPlanId)"
+          >
+            <span class="sip-plan-card__top">
+              <span class="sip-plan-card__name">{{ plan.planName }}</span>
+              <span [class]="planStatusClass(plan.status)">{{ planStatusLabels[plan.status] }}</span>
+            </span>
+            <span class="sip-plan-card__amount tabular">{{ formatInr(plan.monthlyAmount) }}<span class="sip-plan-card__period"> / month</span></span>
+            <span class="sip-plan-card__meta">Day {{ plan.installmentDay }} · from {{ formatIsoDate(plan.trackingStartDate) }}</span>
+          </button>
+        }
+      </div>
+    }
+  </aside>
+
+  <section class="card sip-detail-card" aria-labelledby="sip-detail-title">
+    @if (selectedPlanId() === null) {
+      <div class="sip-empty sip-empty--detail">
+        <p class="sip-empty-title">Select a plan</p>
+        <p class="sip-empty-body">Choose a SIP plan to see its installment schedule and actions.</p>
+      </div>
+    } @else {
+      @if (detailLoading() && !selectedPlan()) {
+        <div class="sip-loading" role="status" aria-live="polite">
+          <span class="skeleton-line"></span>
+          <span class="skeleton-line"></span>
+          <span class="skeleton-line"></span>
+          <span class="sr-only">Loading plan details</span>
+        </div>
+      }
+
+      @if (detailError()) {
+        <div class="alert alert-danger" role="alert">
+          <span>{{ detailError() }}</span>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="selectPlan(selectedPlanId()!)">Retry</button>
+        </div>
+      }
+
+      @if (selectedPlan(); as plan) {
+        <div class="sip-detail-header">
+          <div>
+            <div class="sip-detail-title-row">
+              <h2 id="sip-detail-title" class="sip-detail-title">{{ plan.planName }}</h2>
+              <span [class]="planStatusClass(plan.status)">{{ planStatusLabels[plan.status] }}</span>
+            </div>
+            <p class="sip-section-subtitle">
+              {{ formatInr(plan.monthlyAmount) }} every month on day {{ plan.installmentDay }}
+            </p>
+          </div>
+          @if (isActive(plan)) {
+            <div class="sip-detail-actions">
+              <button type="button" class="btn btn-secondary" (click)="openEditForm(plan)">Edit</button>
+              <button type="button" class="btn btn-destructive" (click)="requestStop(plan)">Stop SIP</button>
+            </div>
+          }
+        </div>
+
+        <dl class="sip-detail-grid">
+          <div>
+            <dt>Tracking started</dt>
+            <dd class="tabular">{{ formatIsoDate(plan.trackingStartDate) }}</dd>
+          </div>
+          <div>
+            <dt>Original start</dt>
+            <dd class="tabular">{{ formatIsoDate(plan.originalStartDate) }}</dd>
+          </div>
+          <div>
+            <dt>Planned end</dt>
+            <dd class="tabular">{{ plan.plannedEndDate ? formatIsoDate(plan.plannedEndDate) : 'Open-ended' }}</dd>
+          </div>
+          <div>
+            <dt>Actual end</dt>
+            <dd class="tabular">{{ plan.actualEndedDate ? formatIsoDate(plan.actualEndedDate) : '—' }}</dd>
+          </div>
+        </dl>
+
+        <div class="sip-installments">
+          <div class="sip-section-heading sip-section-heading--compact">
+            <div>
+              <h3 class="sip-section-title">Installments</h3>
+              <p class="sip-section-subtitle">Two months back through three months ahead.</p>
+            </div>
+            @if (installmentsLoading()) {
+              <span class="sip-muted">Loading…</span>
+            }
+          </div>
+
+          @if (installmentsError()) {
+            <div class="alert alert-danger" role="alert">
+              <span>{{ installmentsError() }}</span>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="selectPlan(plan.sipPlanId)">Retry</button>
+            </div>
+          } @else if (!installmentsLoading() && installments().length === 0) {
+            <p class="sip-empty-body">No installments fall in this window.</p>
+          } @else if (installments().length > 0) {
+            <div class="sip-table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Period</th>
+                    <th scope="col">Due date</th>
+                    <th scope="col" class="text-right">Amount</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Paid on</th>
+                    <th scope="col" class="text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (installment of installments(); track installment.period) {
+                    <tr>
+                      <td>{{ formatMonthLabel(installment.period) }}</td>
+                      <td class="tabular">{{ formatIsoDate(installment.dueDate) }}</td>
+                      <td class="text-right tabular">{{ formatInr(installment.amount) }}</td>
+                      <td>
+                        <span [class]="installmentStatusClass(installment.status)">
+                          {{ installmentStatusLabels[installment.status] }}
+                        </span>
+                      </td>
+                      <td class="tabular">{{ installment.paidDate ? formatIsoDate(installment.paidDate) : '—' }}</td>
+                      <td class="text-right">
+                        @if (canPay(plan, installment)) {
+                          <button
+                            type="button"
+                            class="btn btn-primary btn-sm"
+                            (click)="requestPay(installment)"
+                          >
+                            Mark as paid
+                          </button>
+                        } @else if (installment.status === 'PAID') {
+                          <span class="sip-muted">Recorded</span>
+                        } @else {
+                          <span class="sip-muted">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+    }
+  </section>
+</div>
+
+@if (payTarget(); as target) {
+  <div class="modal-backdrop" (click)="cancelPay()">
+    <div
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pay-title"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="pay-title" class="modal__title">Mark installment as paid?</h2>
+      <p class="modal__body">
+        {{ target.planName }} · {{ formatMonthLabel(target.period) }} ·
+        <strong class="tabular">{{ formatInr(target.amount) }}</strong>
+      </p>
+      <p class="modal__body">
+        This records a POSTED Investments / SIP entry in that month's budget. It cannot be paid
+        again.
+      </p>
+
+      <div class="sip-modal-field">
+        <label class="label" for="sip-pay-date">Payment date</label>
+        <input
+          id="sip-pay-date"
+          type="date"
+          class="input tabular"
+          [value]="payDate()"
+          [max]="today()"
+          (input)="setPayDate($any($event.target).value)"
+        />
+      </div>
+      <div class="sip-modal-field">
+        <label class="label" for="sip-pay-note">Note <span class="text-text-muted">(optional)</span></label>
+        <textarea
+          id="sip-pay-note"
+          class="input"
+          rows="2"
+          maxlength="500"
+          [value]="payNote()"
+          (input)="setPayNote($any($event.target).value)"
+          placeholder="e.g. Auto-debit"
+        ></textarea>
+      </div>
+
+      @if (payError()) {
+        <p class="alert alert-danger mt-3" role="alert">{{ payError() }}</p>
+      }
+
+      <div class="modal__actions">
+        <button type="button" class="btn btn-secondary" (click)="cancelPay()" [disabled]="paySubmitting()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" (click)="confirmPay()" [disabled]="paySubmitting()">
+          {{ paySubmitting() ? 'Recording…' : 'Confirm payment' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (stopTarget(); as plan) {
+  <div class="modal-backdrop" (click)="cancelStop()">
+    <div
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="stop-title"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="stop-title" class="modal__title">Stop this SIP plan?</h2>
+      <p class="modal__body">
+        <strong>{{ plan.planName }}</strong> will stop generating installments from the selected
+        date. Past installments, paid entries and history are kept.
+      </p>
+
+      <div class="sip-modal-field">
+        <label class="label" for="sip-stop-date">Stop date</label>
+        <input
+          id="sip-stop-date"
+          type="date"
+          class="input tabular"
+          [value]="stopDate()"
+          [max]="stopMaxDate(plan)"
+          [min]="plan.trackingStartDate"
+          (input)="setStopDate($any($event.target).value)"
+        />
+      </div>
+
+      @if (stopError()) {
+        <p class="alert alert-danger mt-3" role="alert">{{ stopError() }}</p>
+      }
+
+      <div class="modal__actions">
+        <button type="button" class="btn btn-secondary" (click)="cancelStop()" [disabled]="stopSubmitting()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-destructive" (click)="confirmStop()" [disabled]="stopSubmitting()">
+          {{ stopSubmitting() ? 'Stopping…' : 'Stop plan' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,23 +1,8 @@
 <app-page-header title="Budget" subtitle="Set your monthly income and bucket allocations">
-  <div class="month-nav">
-    <button
-      type="button"
-      class="btn btn-ghost btn-icon"
-      (click)="changeMonth(-1)"
-      aria-label="Previous month"
-    >
-      <span aria-hidden="true">&#8249;</span>
-    </button>
-    <span class="month-nav__label tabular">{{ monthLabel() }}</span>
-    <button
-      type="button"
-      class="btn btn-ghost btn-icon"
-      (click)="changeMonth(1)"
-      aria-label="Next month"
-    >
-      <span aria-hidden="true">&#8250;</span>
-    </button>
-  </div>
+  <app-month-selector
+    [monthLabel]="monthLabel()"
+    (change)="changeMonth($event)"
+  />
 </app-page-header>
 
 @if (loading()) {
@@ -94,15 +79,20 @@
 
         <div>
           <label class="label" for="budget-income-amount">Monthly income amount</label>
-          <input
-            id="budget-income-amount"
-            type="text"
-            inputmode="decimal"
-            class="input tabular"
-            [class.input-invalid]="isInvalid('incomeAmount')"
-            formControlName="incomeAmount"
-            placeholder="0.00"
-          />
+          <div class="money-field">
+            <span class="money-field__prefix" aria-hidden="true">₹</span>
+            <input
+              id="budget-income-amount"
+              type="text"
+              inputmode="decimal"
+              class="input tabular money-field__input"
+              [class.input-invalid]="isInvalid('incomeAmount')"
+              formControlName="incomeAmount"
+              placeholder="0.00"
+              autocomplete="off"
+              [attr.aria-invalid]="isInvalid('incomeAmount') ? 'true' : null"
+            />
+          </div>
           @if (fieldError('incomeAmount')) {
             <p class="error-text" role="alert">{{ fieldError('incomeAmount') }}</p>
           }
@@ -131,6 +121,55 @@
         </div>
       </div>
 
+      <div class="mode-field">
+        <span class="label" id="input-mode-label">Allocation input mode</span>
+        <div class="mode-toggle" role="group" aria-labelledby="input-mode-label">
+          <button
+            type="button"
+            class="mode-toggle__option"
+            [class.mode-toggle__option--active]="!isAmountMode()"
+            [attr.aria-pressed]="!isAmountMode()"
+            (click)="selectInputMode('PERCENTAGE')"
+            [disabled]="isPast() || submitting()"
+          >
+            Percentage (%)
+          </button>
+          <button
+            type="button"
+            class="mode-toggle__option"
+            [class.mode-toggle__option--active]="isAmountMode()"
+            [attr.aria-pressed]="isAmountMode()"
+            (click)="selectInputMode('AMOUNT')"
+            [disabled]="isPast() || submitting()"
+          >
+            Amount (₹)
+          </button>
+        </div>
+      </div>
+
+      <div class="allocation-meta mt-4" role="status" aria-live="polite">
+        <span class="allocation-meta__item">
+          Template <strong>{{ allocationTemplateLabel() }}</strong>
+        </span>
+        <span class="allocation-meta__item">
+          Input mode <strong>{{ inputModeLabel() }}</strong>
+        </span>
+        @if (presetIndicator(); as indicator) {
+          <span
+            class="allocation-meta__badge"
+            [class.allocation-meta__badge--customized]="indicator.customized"
+          >
+            {{ indicator.label }}
+          </span>
+        }
+      </div>
+
+      @if (noteMessage()) {
+        <div class="alert alert-info mt-3" role="status">
+          <span>{{ noteMessage() }}</span>
+        </div>
+      }
+
       <span class="label" id="preset-label">Preset</span>
       <div class="preset-cards" role="group" aria-labelledby="preset-label">
         <button
@@ -139,7 +178,7 @@
           [class.preset-card--active]="presetMode() === 'CONSERVATIVE'"
           [attr.aria-pressed]="presetMode() === 'CONSERVATIVE'"
           (click)="selectPreset(presets[0])"
-          [disabled]="isPast() || submitting()"
+          [disabled]="!canSelectPreset()"
         >
           <div class="preset-card__head">
             <div class="font-semibold text-sm text-text-primary">Conservative</div>
@@ -147,7 +186,7 @@
               <span class="preset-card__badge">Selected</span>
             }
           </div>
-          <div class="text-xs text-text-secondary mt-1">Essentials 60% · Safety 10% · Investments 30%</div>
+          <div class="text-xs text-text-secondary mt-1">Essentials 60% · Emergency Fund 10% · Investments 30%</div>
         </button>
         <button
           type="button"
@@ -155,7 +194,7 @@
           [class.preset-card--active]="presetMode() === 'BALANCED'"
           [attr.aria-pressed]="presetMode() === 'BALANCED'"
           (click)="selectPreset(presets[1])"
-          [disabled]="isPast() || submitting()"
+          [disabled]="!canSelectPreset()"
         >
           <div class="preset-card__head">
             <div class="font-semibold text-sm text-text-primary">Balanced</div>
@@ -163,7 +202,7 @@
               <span class="preset-card__badge">Selected</span>
             }
           </div>
-          <div class="text-xs text-text-secondary mt-1">Essentials 55% · Safety 10% · Investments 35%</div>
+          <div class="text-xs text-text-secondary mt-1">Essentials 55% · Emergency Fund 10% · Investments 35%</div>
         </button>
         <button
           type="button"
@@ -171,7 +210,7 @@
           [class.preset-card--active]="presetMode() === 'AGGRESSIVE'"
           [attr.aria-pressed]="presetMode() === 'AGGRESSIVE'"
           (click)="selectPreset(presets[2])"
-          [disabled]="isPast() || submitting()"
+          [disabled]="!canSelectPreset()"
         >
           <div class="preset-card__head">
             <div class="font-semibold text-sm text-text-primary">Aggressive</div>
@@ -179,7 +218,7 @@
               <span class="preset-card__badge">Selected</span>
             }
           </div>
-          <div class="text-xs text-text-secondary mt-1">Essentials 50% · Safety 10% · Investments 40%</div>
+          <div class="text-xs text-text-secondary mt-1">Essentials 50% · Emergency Fund 10% · Investments 40%</div>
         </button>
         <button
           type="button"
@@ -195,71 +234,199 @@
               <span class="preset-card__badge">Selected</span>
             }
           </div>
-          <div class="text-xs text-text-secondary mt-1">Set each bucket yourself · must total 100%</div>
+          @if (isAmountMode()) {
+            <div class="text-xs text-text-secondary mt-1">Set each bucket yourself · total must match income</div>
+          } @else {
+            <div class="text-xs text-text-secondary mt-1">Set each bucket yourself · must total 100%</div>
+          }
         </button>
       </div>
 
       <div class="form-grid mt-5">
-        <div>
-          <label class="label" for="budget-essentials">Essentials %</label>
-          <input
-            id="budget-essentials"
-            type="text"
-            inputmode="decimal"
-            class="input tabular"
-            [class.input-invalid]="isInvalid('essentialsPercentage')"
-            formControlName="essentialsPercentage"
-          />
-          @if (fieldError('essentialsPercentage')) {
-            <p class="error-text" role="alert">{{ fieldError('essentialsPercentage') }}</p>
-          }
-          <p class="hint">≈ {{ formatInr(previewAmounts().essentials) }}</p>
-        </div>
+        @if (!isAmountMode()) {
+          <div>
+            <label class="label" for="budget-essentials">Essentials %</label>
+            <input
+              id="budget-essentials"
+              type="text"
+              inputmode="decimal"
+              class="input tabular"
+              [class.input-invalid]="isInvalid('essentialsPercentage')"
+              formControlName="essentialsPercentage"
+            />
+            @if (fieldError('essentialsPercentage')) {
+              <p class="error-text" role="alert">{{ fieldError('essentialsPercentage') }}</p>
+            }
+            <p class="hint">≈ {{ formatInr(previewAmounts().essentials) }}</p>
+          </div>
 
-        <div>
-          <label class="label" for="budget-safety">Safety %</label>
-          <input
-            id="budget-safety"
-            type="text"
-            inputmode="decimal"
-            class="input tabular"
-            [class.input-invalid]="isInvalid('safetyPercentage')"
-            formControlName="safetyPercentage"
-          />
-          @if (fieldError('safetyPercentage')) {
-            <p class="error-text" role="alert">{{ fieldError('safetyPercentage') }}</p>
-          }
-          <p class="hint">≈ {{ formatInr(previewAmounts().safety) }}</p>
-        </div>
+          <div>
+            <label class="label" for="budget-safety">Emergency Fund %</label>
+            <input
+              id="budget-safety"
+              type="text"
+              inputmode="decimal"
+              class="input tabular"
+              [class.input-invalid]="isInvalid('safetyPercentage')"
+              formControlName="safetyPercentage"
+            />
+            @if (fieldError('safetyPercentage')) {
+              <p class="error-text" role="alert">{{ fieldError('safetyPercentage') }}</p>
+            }
+            <p class="hint">≈ {{ formatInr(previewAmounts().safety) }}</p>
+          </div>
 
-        <div>
-          <label class="label" for="budget-investments">Investments %</label>
-          <input
-            id="budget-investments"
-            type="text"
-            inputmode="decimal"
-            class="input tabular"
-            [class.input-invalid]="isInvalid('investmentsPercentage')"
-            formControlName="investmentsPercentage"
-            [disabled]="!investmentsEnabled()"
-          />
-          @if (fieldError('investmentsPercentage')) {
-            <p class="error-text" role="alert">{{ fieldError('investmentsPercentage') }}</p>
-          }
-          @if (investmentsEnabled()) {
-            <p class="hint">≈ {{ formatInr(previewAmounts().investments) }}</p>
-          } @else {
-            <p class="hint">Investments are switched off for this month.</p>
-          }
-        </div>
+          <div>
+            <label class="label" for="budget-investments">Investments %</label>
+            <input
+              id="budget-investments"
+              type="text"
+              inputmode="decimal"
+              class="input tabular"
+              [class.input-invalid]="isInvalid('investmentsPercentage')"
+              formControlName="investmentsPercentage"
+            />
+            @if (fieldError('investmentsPercentage')) {
+              <p class="error-text" role="alert">{{ fieldError('investmentsPercentage') }}</p>
+            }
+            @if (investmentsEnabled()) {
+              <p class="hint">≈ {{ formatInr(previewAmounts().investments) }}</p>
+            } @else {
+              <p class="hint">Investments are switched off for this month.</p>
+            }
+          </div>
+        } @else {
+          <div>
+            <label class="label" for="budget-essentials-amount">Essentials ₹</label>
+            <div class="money-field">
+              <span class="money-field__prefix" aria-hidden="true">₹</span>
+              <input
+                id="budget-essentials-amount"
+                type="text"
+                inputmode="decimal"
+                class="input tabular money-field__input"
+                [class.input-invalid]="isInvalid('essentialsAmount')"
+                formControlName="essentialsAmount"
+                placeholder="0.00"
+                autocomplete="off"
+                [attr.aria-invalid]="isInvalid('essentialsAmount') ? 'true' : null"
+              />
+            </div>
+            @if (fieldError('essentialsAmount')) {
+              <p class="error-text" role="alert">{{ fieldError('essentialsAmount') }}</p>
+            }
+            <p class="hint">{{ amountPercent('essentialsAmount') }}% of monthly income</p>
+          </div>
+
+          <div>
+            <label class="label" for="budget-safety-amount">Emergency Fund ₹</label>
+            <div class="money-field">
+              <span class="money-field__prefix" aria-hidden="true">₹</span>
+              <input
+                id="budget-safety-amount"
+                type="text"
+                inputmode="decimal"
+                class="input tabular money-field__input"
+                [class.input-invalid]="isInvalid('safetyAmount')"
+                formControlName="safetyAmount"
+                placeholder="0.00"
+                autocomplete="off"
+                [attr.aria-invalid]="isInvalid('safetyAmount') ? 'true' : null"
+              />
+            </div>
+            @if (fieldError('safetyAmount')) {
+              <p class="error-text" role="alert">{{ fieldError('safetyAmount') }}</p>
+            }
+            <p class="hint">{{ amountPercent('safetyAmount') }}% of monthly income</p>
+          </div>
+
+          <div>
+            <label class="label" for="budget-investments-amount">Investments ₹</label>
+            <div class="money-field">
+              <span class="money-field__prefix" aria-hidden="true">₹</span>
+              <input
+                id="budget-investments-amount"
+                type="text"
+                inputmode="decimal"
+                class="input tabular money-field__input"
+                [class.input-invalid]="isInvalid('investmentsAmount')"
+                formControlName="investmentsAmount"
+                placeholder="0.00"
+                autocomplete="off"
+                [attr.aria-invalid]="isInvalid('investmentsAmount') ? 'true' : null"
+              />
+            </div>
+            @if (fieldError('investmentsAmount')) {
+              <p class="error-text" role="alert">{{ fieldError('investmentsAmount') }}</p>
+            }
+            @if (!investmentsEnabled()) {
+              <p class="hint">Investments are switched off for this month.</p>
+            } @else {
+              <p class="hint">{{ amountPercent('investmentsAmount') }}% of monthly income</p>
+            }
+          </div>
+        }
       </div>
 
-      <p class="hint mt-4" [class.hint--invalid]="!allocationValid()">
-        Total allocation: {{ allocationTotal() | number: '1.0-2' }}%
-        @if (!allocationValid()) {
-          <span> — must equal 100%.</span>
-        }
-      </p>
+      @if (!isAmountMode()) {
+        <p class="hint mt-4" [class.hint--invalid]="!allocationValid()">
+          Total allocation: {{ percentageTotal() }}%
+          @if (!allocationValid()) {
+            <span> — must equal 100%.</span>
+          }
+        </p>
+      } @else {
+        <div class="amount-summary mt-4">
+          <p class="hint" [class.hint--invalid]="amountTotalValid() !== 'exact'">
+            Total allocation: {{ formatInr(amountTotal()) }}
+            of {{ formatInr(parseIncomeDisplay()) }} monthly income
+          </p>
+          @switch (amountTotalValid()) {
+            @case ('exact') {
+              <p class="hint hint--valid">The allocation matches your monthly income exactly.</p>
+            }
+            @case ('under') {
+              <div class="unallocated-panel">
+                <p class="hint hint--invalid">
+                  {{ formatInr(amountRemaining()) }} is still unallocated. Where would you like to add it?
+                </p>
+                <div class="unallocated-panel__actions">
+                  <label class="label" for="unallocated-target">Add to</label>
+                  <select
+                    id="unallocated-target"
+                    class="select"
+                    (change)="onUnallocatedTargetChange($event)"
+                    [disabled]="isPast() || submitting()"
+                  >
+                    <option value="">Choose a bucket</option>
+                    <option value="ESSENTIALS">Essentials</option>
+                    <option value="SAFETY">Emergency Fund</option>
+                  </select>
+                  @if (undoSnapshot()) {
+                    <button
+                      type="button"
+                      class="btn btn-ghost"
+                      (click)="undoUnallocated()"
+                      [disabled]="isPast() || submitting()"
+                    >
+                      Undo
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+            @case ('over') {
+              <p class="hint hint--invalid">
+                Total allocation {{ formatInr(amountTotal()) }} exceeds your monthly income by
+                {{ formatInr(amountRemaining()) }}. Reduce the bucket amounts before saving.
+              </p>
+            }
+            @case ('invalid') {
+              <p class="hint hint--invalid">Enter valid bucket amounts and a valid monthly income.</p>
+            }
+          }
+        </div>
+      }
     </div>
 
     <div class="form-actions mt-5">

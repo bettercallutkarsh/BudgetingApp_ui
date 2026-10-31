@@ -7,6 +7,7 @@ import { HomePageComponent } from './home';
 import { authInterceptor } from '../../core/auth/auth.interceptor';
 import { currentMonthKey, formatMonthLabel } from '../../shared/formatters';
 import { MonthlySummary } from '../../core/budget/budget.models';
+import { SipCommitmentSummary } from '../../core/sip/sip.models';
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -34,6 +35,21 @@ function summary(overrides: Partial<MonthlySummary> = {}): MonthlySummary {
     investmentContributions: '0.00',
     creditCardOutstandingAmount: '0.00',
     explanation: 'You are within your allocation.',
+    ...overrides,
+  };
+}
+
+function sipCommitment(
+  overrides: Partial<SipCommitmentSummary> = {},
+): SipCommitmentSummary {
+  return {
+    month: '2026-10',
+    investmentsAmount: '17500.00',
+    activeMonthlyCommitment: '5000.00',
+    withinAllocation: true,
+    overAllocationAmount: '0.00',
+    activePlanCount: 1,
+    message: 'Your SIPs fit within this month’s Investments allocation.',
     ...overrides,
   };
 }
@@ -67,6 +83,7 @@ describe('HomePageComponent', () => {
     summaryError?: { status: number; code: string; message: string };
     budget?: unknown | null;
     entries?: unknown;
+    sip?: SipCommitmentSummary;
   } = {}): Promise<void> {
     const summaryReq = httpMock.expectOne(
       (r) => r.url === '/api/v1/reports/monthly-summary',
@@ -97,6 +114,9 @@ describe('HomePageComponent', () => {
 
     const entriesReq = httpMock.expectOne((r) => r.url === '/api/v1/money-entries');
     entriesReq.flush(options.entries ?? EMPTY_PAGE);
+
+    const sipReq = httpMock.expectOne((r) => r.url === '/api/v1/sip-plans/summary');
+    sipReq.flush(options.sip ?? sipCommitment());
     await settle();
   }
 
@@ -192,6 +212,28 @@ describe('HomePageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Switched off');
   });
 
+  it('shows the SIP commitment, over-allocation warning and plan link', async () => {
+    const fixture = TestBed.createComponent(HomePageComponent);
+    fixture.detectChanges();
+    await settle();
+    await flushLoad({
+      sip: sipCommitment({
+        activeMonthlyCommitment: '19000.00',
+        withinAllocation: false,
+        overAllocationAmount: '1500.00',
+        message: 'SIPs exceed the Investments allocation for this month.',
+      }),
+    });
+    fixture.detectChanges();
+
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('SIP commitment');
+    expect(text).toContain('19,000.00');
+    expect(text).toContain('SIPs exceed the Investments allocation by');
+    expect(text).toContain('1,500.00');
+    expect(fixture.nativeElement.querySelector('a[href="/sip-plans"]')).toBeTruthy();
+  });
+
   it('shows an error state with retry when the summary fails hard', async () => {
     const fixture = TestBed.createComponent(HomePageComponent);
     fixture.detectChanges();
@@ -283,6 +325,11 @@ describe('HomePageComponent', () => {
         statusText: 'Not Found',
       });
     localHttp.expectOne((r) => r.url === '/api/v1/money-entries').flush(EMPTY_PAGE);
+    localHttp
+      .expectOne(
+        (r) => r.url === '/api/v1/sip-plans/summary' && r.params.get('month') === '2026-03',
+      )
+      .flush(sipCommitment({ month: '2026-03' }));
     await settle();
     fixture.detectChanges();
 

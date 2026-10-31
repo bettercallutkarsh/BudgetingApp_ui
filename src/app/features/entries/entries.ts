@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header';
 import { EntriesService } from '../../core/entries/entries.service';
 import { CategoriesService } from '../../core/categories/categories.service';
@@ -24,9 +25,13 @@ import { currentMonthKey, formatDateTime, formatInr, formatMonthLabel } from '..
 
 const PAGE_SIZE = 10;
 
+const LEGACY_CATEGORY_LABELS: Record<string, string> = {
+  GOLD_SIP: 'Gold SIP (legacy)',
+};
+
 @Component({
   selector: 'app-entries',
-  imports: [PageHeaderComponent, ReactiveFormsModule],
+  imports: [PageHeaderComponent, ReactiveFormsModule, RouterLink],
   templateUrl: './entries.html',
   styleUrl: './entries.scss',
 })
@@ -43,6 +48,7 @@ export class EntriesPageComponent {
   protected readonly entryStatusLabels = ENTRY_STATUS_LABELS;
   protected readonly formatInr = formatInr;
   protected readonly formatDateTime = formatDateTime;
+  protected readonly formatMonthLabel = formatMonthLabel;
 
   // --- create form state ---
   protected readonly form: FormGroup = this.fb.nonNullable.group({
@@ -248,7 +254,11 @@ export class EntriesPageComponent {
         entryType: type,
         bucket: bucket ?? undefined,
       });
-      this.categories.set(list);
+      this.categories.set(
+        type === 'INVESTMENT'
+          ? list.filter((category) => category.code !== 'GOLD_SIP')
+          : list,
+      );
     } catch (error) {
       this.categories.set([]);
       this.categoriesError.set(serverErrorMessage(error));
@@ -310,7 +320,11 @@ export class EntriesPageComponent {
   }
 
   protected categoryLabel(code: string): string {
-    return this.categories().find((c) => c.code === code)?.label ?? code;
+    return (
+      this.categories().find((c) => c.code === code)?.label ??
+      LEGACY_CATEGORY_LABELS[code] ??
+      code
+    );
   }
 
   // ---------- void ----------

@@ -31,6 +31,12 @@ const protectedRoutes: Routes = [
   { path: 'home', component: HomePageComponent, canActivate: [authGuard] },
   { path: 'budget', component: BudgetPageComponent, canActivate: [authGuard] },
   { path: 'entries', component: EntriesPageComponent, canActivate: [authGuard] },
+  {
+    path: 'sip-plans',
+    loadComponent: () =>
+      import('./features/sip-plans/sip-plans').then((m) => m.SipPlansPageComponent),
+    canActivate: [authGuard],
+  },
   { path: 'reports', component: ReportsPageComponent, canActivate: [authGuard] },
   { path: 'credit-card', component: CreditCardPageComponent, canActivate: [authGuard] },
   { path: 'profile', component: ProfilePageComponent, canActivate: [authGuard] },

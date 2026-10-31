@@ -1,23 +1,5 @@
 <app-page-header title="Home" subtitle="Your monthly money overview">
-  <div class="month-nav">
-    <button
-      type="button"
-      class="btn btn-ghost btn-icon"
-      (click)="changeMonth(-1)"
-      aria-label="Previous month"
-    >
-      <span aria-hidden="true">&#8249;</span>
-    </button>
-    <span class="month-nav__label tabular">{{ monthLabel() }}</span>
-    <button
-      type="button"
-      class="btn btn-ghost btn-icon"
-      (click)="changeMonth(1)"
-      aria-label="Next month"
-    >
-      <span aria-hidden="true">&#8250;</span>
-    </button>
-  </div>
+  <app-month-selector [monthLabel]="monthLabel()" (change)="changeMonth($event)" />
 </app-page-header>
 
 @if (isViewingPastMonth()) {
@@ -111,7 +93,7 @@
 
     <div class="card p-6">
       <div class="flex items-center justify-between mb-1">
-        <div class="text-sm text-text-secondary">Safety</div>
+        <div class="text-sm text-text-secondary">Emergency Fund</div>
         <span class="text-xs uppercase tracking-wide text-text-muted">Remaining</span>
       </div>
       <div class="text-2xl font-semibold tabular text-text-primary">
@@ -156,12 +138,28 @@
             style="background: var(--bucket-investments)"
           ></div>
         </div>
+        @if (sipSummary(); as sip) {
+          <div class="sip-home">
+            <div class="sip-home__row">
+              <span>SIP commitment</span>
+              <span class="tabular">{{ formatInr(sip.activeMonthlyCommitment) }}</span>
+            </div>
+            @if (sipWarning()) {
+              <p class="sip-home__warning">
+                SIPs exceed the Investments allocation by
+                {{ formatInr(sip.overAllocationAmount) }}.
+              </p>
+            }
+          </div>
+        }
+        <a class="sip-home__link" routerLink="/sip-plans">Manage SIP plans</a>
       </div>
     } @else {
       <div class="card p-6">
         <div class="text-sm text-text-secondary mb-1">Investments</div>
         <div class="text-lg font-medium text-text-muted mt-1">Switched off</div>
         <p class="hint mt-2">Investments are disabled for {{ monthLabel() }}.</p>
+        <a class="sip-home__link" routerLink="/sip-plans">Manage SIP plans</a>
       </div>
     }
   </div>

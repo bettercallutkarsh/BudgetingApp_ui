@@ -6,26 +6,11 @@
 <section class="card p-6 mb-5" aria-labelledby="monthly-heading">
   <div class="section-head">
     <h2 id="monthly-heading" class="text-base font-semibold text-text-primary">Monthly summary</h2>
-    <div class="month-nav">
-      <button
-        type="button"
-        class="btn btn-ghost btn-icon"
-        (click)="prevMonth()"
-        aria-label="Previous month"
-      >
-        <span aria-hidden="true">&#8249;</span>
-      </button>
-      <span class="month-nav__label tabular">{{ monthLabel() }}</span>
-      <button
-        type="button"
-        class="btn btn-ghost btn-icon"
-        (click)="nextMonth()"
-        [disabled]="!canGoNext()"
-        aria-label="Next month"
-      >
-        <span aria-hidden="true">&#8250;</span>
-      </button>
-    </div>
+    <app-month-selector
+      [monthLabel]="monthLabel()"
+      [nextDisabled]="!canGoNext()"
+      (change)="changeMonth($event)"
+    />
   </div>
 
   @if (monthlyLoading()) {
@@ -52,7 +37,7 @@
         </div>
       </div>
       <div>
-        <div class="text-sm text-text-secondary mb-1">Safety savings</div>
+        <div class="text-sm text-text-secondary mb-1">Emergency Fund savings</div>
         <div class="text-xl font-semibold tabular text-text-primary">
           {{ formatInr(m.safetySavings) }}
         </div>
@@ -163,7 +148,7 @@
           </div>
         </div>
         <div>
-          <div class="text-sm text-text-secondary mb-1">Total safety savings</div>
+          <div class="text-sm text-text-secondary mb-1">Total emergency fund savings</div>
           <div class="text-lg font-semibold tabular text-text-primary">
             {{ formatInr(totals.safetySavings) }}
           </div>
@@ -195,7 +180,7 @@
             </div>
           }
         </div>
-        <p class="hint">Bars show total consumption, safety and investments per period.</p>
+        <p class="hint">Bars show total consumption, emergency fund savings and investments per period.</p>
       </div>
 
       <div class="table-scroll mt-6">
@@ -208,7 +193,7 @@
             <tr>
               <th scope="col">Period</th>
               <th scope="col" class="num">Consumption</th>
-              <th scope="col" class="num">Safety</th>
+              <th scope="col" class="num">Emergency Fund</th>
               <th scope="col" class="num">Investments</th>
               <th scope="col" class="num">Recorded income</th>
             </tr>
